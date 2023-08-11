@@ -6,6 +6,7 @@ from typing import Optional, Union
 
 from .typing import WEEKDAYS, OptionType, SecondsTimedelta, WeekdayOptionType, WorkerCoroutine
 from .utils import import_string, to_seconds
+import pytz
 
 
 @dataclass
@@ -106,9 +107,12 @@ class CronJob:
     keep_result_forever: Optional[bool]
     max_tries: Optional[int]
     next_run: Optional[datetime] = None
+    timezone: Optional[str] = None
 
     def calculate_next(self, prev_run: datetime) -> None:
-        self.next_run = next_cron(
+        if self.timezone:
+            prev_run = prev_run.astimezone(pytz.timezone(self.timezone))
+        next_run = next_cron(
             prev_run,
             month=self.month,
             day=self.day,
@@ -118,6 +122,7 @@ class CronJob:
             second=self.second,
             microsecond=self.microsecond,
         )
+        self.next_run = next_run.astimezone(pytz.timezone(self.timezone))
 
     def __repr__(self) -> str:
         return '<CronJob {}>'.format(' '.join(f'{k}={v}' for k, v in self.__dict__.items()))
@@ -141,6 +146,7 @@ def cron(
     keep_result: Optional[float] = 0,
     keep_result_forever: Optional[bool] = False,
     max_tries: Optional[int] = 1,
+    timezone: Optional[str] = None,
 ) -> CronJob:
     """
     Create a cron job, eg. it should be executed at specific times.
@@ -194,4 +200,5 @@ def cron(
         keep_result,
         keep_result_forever,
         max_tries,
+        timezone=timezone,
     )
